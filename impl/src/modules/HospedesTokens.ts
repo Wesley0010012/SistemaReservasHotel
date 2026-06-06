@@ -1,0 +1,3 @@
+export const HOSPEDES_DAO = "HOSPEDES_DAO";
+export const CIDADES_DAO = "CIDADES_DAO";
+export const HOSPEDES_FACADE = "HOSPEDES_FACADE";
