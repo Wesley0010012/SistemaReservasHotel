@@ -3,6 +3,8 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { TypeormCidadeEntity } from './infra/typeorm/entities/TypeormCidadeEntity';
 import { TypeormEstadoEntity } from './infra/typeorm/entities/TypeormEstadoEntity';
 import { TypeormHospedeEntity } from './infra/typeorm/entities/TypeormHospedeEntity';
+import { HospedesModule } from './modules/HospedesModule';
+import { LocalidadesModule } from './modules/LocalidadesModule';
 
 @Module({
   imports: [
@@ -20,8 +22,10 @@ import { TypeormHospedeEntity } from './infra/typeorm/entities/TypeormHospedeEnt
       ],
       synchronize: process.env.TYPEORM_SYNCHRONIZE !== 'false',
     }),
+    HospedesModule,
+    LocalidadesModule
   ],
   controllers: [],
   providers: [],
 })
-export class AppModule {}
+export class AppModule { }
