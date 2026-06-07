@@ -20,14 +20,16 @@ export class TypeormEstadosDao implements EstadosDao {
     }
 
     public async findAllPaginated(): Promise<Estado[]> {
-        const entities = await this.repository.find();
+        const entities = await this.repository.find({
+            where: { active: true },
+        });
 
         return entities.map(TypeormEstadoMapper.toDomain);
     }
 
     public async findById(id: number): Promise<Estado | null> {
         const entity = await this.repository.findOne({
-            where: { id },
+            where: { id, active: true },
         });
 
         if (entity === null) {
@@ -41,6 +43,7 @@ export class TypeormEstadosDao implements EstadosDao {
         const pagination = this.getPagination(searchParameters);
         const query = this.repository
             .createQueryBuilder("estado")
+            .where("estado.active = :active", { active: true })
             .orderBy("estado.id", pagination.ordenacao)
             .skip((pagination.paginaAtual - 1) * pagination.quantidade)
             .take(pagination.quantidade);

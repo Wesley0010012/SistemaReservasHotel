@@ -22,26 +22,28 @@ export class TypeormHospedesDao implements HospedesDao {
     }
 
     public async findAllPaginated(): Promise<Hospede[]> {
-        const entities = await this.repository.find({
-            relations: {
-                cidade: {
-                    estado: true,
-                },
-            },
-        });
+        const entities = await this.repository
+            .createQueryBuilder("hospede")
+            .leftJoinAndSelect("hospede.cidade", "cidade")
+            .leftJoinAndSelect("cidade.estado", "estado")
+            .where("hospede.active = :active", { active: true })
+            .andWhere("cidade.active = :active", { active: true })
+            .andWhere("estado.active = :active", { active: true })
+            .getMany();
 
         return entities.map(TypeormHospedeMapper.toDomain);
     }
 
     public async findById(id: number): Promise<Hospede | null> {
-        const entity = await this.repository.findOne({
-            where: { id },
-            relations: {
-                cidade: {
-                    estado: true,
-                },
-            },
-        });
+        const entity = await this.repository
+            .createQueryBuilder("hospede")
+            .leftJoinAndSelect("hospede.cidade", "cidade")
+            .leftJoinAndSelect("cidade.estado", "estado")
+            .where("hospede.id = :id", { id })
+            .andWhere("hospede.active = :active", { active: true })
+            .andWhere("cidade.active = :active", { active: true })
+            .andWhere("estado.active = :active", { active: true })
+            .getOne();
 
         if (entity === null) {
             return null;
@@ -56,6 +58,9 @@ export class TypeormHospedesDao implements HospedesDao {
             .createQueryBuilder("hospede")
             .leftJoinAndSelect("hospede.cidade", "cidade")
             .leftJoinAndSelect("cidade.estado", "estado")
+            .where("hospede.active = :active", { active: true })
+            .andWhere("cidade.active = :active", { active: true })
+            .andWhere("estado.active = :active", { active: true })
             .orderBy("hospede.id", pagination.ordenacao)
             .skip((pagination.paginaAtual - 1) * pagination.quantidade)
             .take(pagination.quantidade);
@@ -138,6 +143,7 @@ export class TypeormHospedesDao implements HospedesDao {
         const count = await this.repository.count({
             where: {
                 cpfNumero: cpf.numero,
+                active: true,
             },
         });
 
@@ -148,6 +154,7 @@ export class TypeormHospedesDao implements HospedesDao {
         const count = await this.repository.count({
             where: {
                 emailEndereco: email.endereco,
+                active: true,
             },
         });
 
