@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Modulo Mock | Sistema Reserva Hotel</title>
+    <link rel="stylesheet" href="/mock/styles.css" />
+  </head>
+  <body>
+    <main class="mock-shell">
+      <aside class="sidebar" aria-label="Navegacao dos modulos mockados">
+        <a class="brand" href="/">
+          <img src="/assets/hero.png" alt="" class="brand__mark" />
+          <span>
+            <strong>Reserva Hotel</strong>
+          </span>
+        </a>
+
+        <nav class="side-nav" id="moduleNav" aria-label="Navegacao principal"></nav>
+      </aside>
+
+      <section class="mock-main">
+        <header class="mock-header">
+          <div>
+            <p class="eyebrow">Servidor mock</p>
+            <h1 id="moduleTitle">Modulo</h1>
+          </div>
+          <div class="header-actions">
+            <button class="icon-button" type="button" id="seedButton" aria-label="Recarregar dados">↻</button>
+          </div>
+        </header>
+
+        <section class="workspace-grid">
+          <section class="panel panel--filters">
+            <div>
+              <h2>Filtros</h2>
+              <p>Consulta operacional do modulo.</p>
+            </div>
+            <form class="filter-grid" id="filterForm"></form>
+          </section>
+
+          <section class="panel panel--form">
+            <div class="panel-heading">
+              <div>
+                <h2 id="formTitle">Manutencao</h2>
+                <p id="formSubtitle">Campos do fluxo mockado.</p>
+              </div>
+            </div>
+            <form class="form-grid" id="recordForm"></form>
+            <div class="action-row" id="actionRow"></div>
+          </section>
+
+          <section class="panel panel--table">
+            <div class="panel-heading">
+              <div>
+                <h2>Registros</h2>
+                <p id="tableSummary">0 registros mockados</p>
+              </div>
+              <div class="table-tools">
+                <a class="button button--primary" id="createRecordButton" href="/reservas/add">Nova reserva</a>
+              </div>
+            </div>
+            <div class="table-wrap">
+              <table>
+                <thead id="tableHead"></thead>
+                <tbody id="tableBody"></tbody>
+              </table>
+            </div>
+          </section>
+        </section>
+      </section>
+    </main>
+
+    <script src="/mock/config.js"></script>
+    <script src="/mock/app.js"></script>
+  </body>
+</html>

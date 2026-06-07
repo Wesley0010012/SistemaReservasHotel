@@ -1,0 +1,14 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Hospedes | Sistema Reserva Hotel</title>
+    <script src="/config.js"></script>
+  </head>
+  <body>
+    <a href="/hospedes">Ir para hospedes</a>
+    <script>
+      window.location.href = `${window.APP_CONFIG?.APP_BASE_URL ?? 'http://localhost:8080'}/hospedes`
+    </script>
+  </body>
+</html>
