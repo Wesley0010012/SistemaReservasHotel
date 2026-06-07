@@ -1,0 +1,992 @@
+@startuml "Implementation Class Diagram - Sistema de Reserva de Hotel"
+
+left to right direction
+
+skinparam classAttributeIconSize 0
+skinparam packageStyle rectangle
+skinparam shadowing false
+skinparam linetype ortho
+skinparam ranksep 55
+skinparam nodesep 40
+
+skinparam defaultFontName Arial
+skinparam ArrowColor #64748B
+skinparam ArrowThickness 1
+
+skinparam class {
+    BackgroundColor #EFF6FF
+    BorderColor #2563EB
+    FontColor #0F172A
+    HeaderBackgroundColor #DBEAFE
+}
+
+skinparam interface {
+    BackgroundColor #F8FAFC
+    BorderColor #475569
+    FontColor #0F172A
+}
+
+skinparam abstractClass {
+    BackgroundColor #F8FAFC
+    BorderColor #475569
+    FontColor #0F172A
+    HeaderBackgroundColor #E2E8F0
+}
+
+skinparam enum {
+    BackgroundColor #F0FDF4
+    BorderColor #16A34A
+    FontColor #052E16
+    HeaderBackgroundColor #DCFCE7
+}
+
+skinparam package {
+    BackgroundColor #FFFFFF
+    BorderColor #CBD5E1
+    FontColor #0F172A
+}
+
+' =========================================================
+' APPLICATION MODULES
+' =========================================================
+
+package "Application / NestJS Modules" as P_Modules {
+    class AppModule <<module>>
+    class LocalidadesModule <<module>>
+    class HospedesModule <<module>>
+    class QuartosModule <<module>>
+    class PromocoesModule <<module>>
+    class PoliticasCancelamentoModule <<module>>
+    class ReservasModule <<module>>
+    class PagamentosModule <<module>>
+    class NotificacoesModule <<module>>
+    class RelatoriosModule <<module>>
+    class AuditoriaModule <<module>>
+
+    AppModule ..> LocalidadesModule
+    AppModule ..> HospedesModule
+    AppModule ..> QuartosModule
+    AppModule ..> PromocoesModule
+    AppModule ..> PoliticasCancelamentoModule
+    AppModule ..> ReservasModule
+    AppModule ..> PagamentosModule
+    AppModule ..> NotificacoesModule
+    AppModule ..> RelatoriosModule
+    AppModule ..> AuditoriaModule
+}
+
+' =========================================================
+' HTTP CONTROLLERS
+' =========================================================
+
+package "Infra / HTTP Controllers" as P_Http {
+    abstract class AbstractController {
+        # facade: AbstractFacade
+        + add(addInputDto: AddInputDto): OutputDto
+        + findByParameters(searchParameters: SearchParameters): EntityPageDto
+        + findById(id: Number): OutputDto
+        + update(updateInputDto: UpdateInputDto): OutputDto
+        + deleteById(id: Number): OutputDto
+    }
+
+    class EstadosController <<controller>>
+    class CidadesController <<controller>>
+    class HospedesController <<controller>>
+    class TiposQuartoController <<controller>>
+    class QuartosController <<controller>>
+    class PromocoesController <<controller>>
+    class PoliticasCancelamentoController <<controller>>
+    class ReservasController <<controller>>
+    class PagamentosController <<controller>>
+    class NotificacoesController <<controller>>
+    class RelatoriosController <<controller>>
+    class AuditoriaController <<controller>>
+
+    class ProjectCustomErrorFilter <<filter>> {
+        + catch(exception: CustomError, host: ArgumentsHost): Void
+        - toHttpStatus(status: Number): Number
+    }
+
+    EstadosController --|> AbstractController
+    CidadesController --|> AbstractController
+    HospedesController --|> AbstractController
+    TiposQuartoController --|> AbstractController
+    QuartosController --|> AbstractController
+    PromocoesController --|> AbstractController
+    PoliticasCancelamentoController --|> AbstractController
+    ReservasController --|> AbstractController
+    PagamentosController --|> AbstractController
+    NotificacoesController --|> AbstractController
+    RelatoriosController --|> AbstractController
+    AuditoriaController --|> AbstractController
+
+    AbstractController o-- AbstractFacade
+}
+
+' =========================================================
+' CORE PROTOCOLS / FACADE / STRATEGIES
+' =========================================================
+
+package "Core / Protocols" as P_Protocols {
+    interface IFacade {
+        + findById(id: Number): OutputDto
+        + findByParameters(searchParameters: SearchParameters): EntityPageDto
+        + add(addInputDto: AddInputDto): OutputDto
+        + update(updateInputDto: UpdateInputDto): OutputDto
+        + deleteById(id: Number): OutputDto
+    }
+
+    interface IStrategy {
+        + execute(input: Any): Any
+    }
+
+    interface IDao {
+        + add(entity: AbstractEntity): Void
+        + update(entity: AbstractEntity): Void
+        + findAllPaginated(): AbstractEntity[]
+        + findById(id: Number): AbstractEntity
+        + findByParameters(searchParameters: SearchParameters): EntityPage
+    }
+}
+
+package "Core / Facade" as P_Facade {
+    class AbstractFacade {
+        - rules: Record<AbstractFacadeRules, IStrategy[]>
+        + add(addInputDto: AddInputDto): OutputDto
+        + findById(id: Number): OutputDto
+        + findByParameters(searchParameters: SearchParameters): EntityPageDto
+        + update(updateInputDto: UpdateInputDto): OutputDto
+        + deleteById(id: Number): OutputDto
+    }
+
+    enum AbstractFacadeRules {
+        ADD
+        ADD_INPUT_DTO_TO_ENTITY
+        UPDATE_INPUT_DTO_TO_ENTITY
+        ENTITY_TO_DTO
+        UPDATE
+        DELETE
+        FIND_BY_ID
+        FIND_BY_PARAMETERS
+    }
+
+    AbstractFacade ..|> IFacade
+    AbstractFacade o-- AbstractFacadeRules
+    AbstractFacade o-- IStrategy
+}
+
+package "Core / Strategies" as P_Strategies {
+    class AdicionarEntidade {
+        - iDao: IDao
+        + execute(input: AbstractEntity): Void
+    }
+
+    class AtualizarEntidade {
+        - iDao: IDao
+        + execute(input: AbstractEntity): Void
+    }
+
+    abstract class BuscarPorId {
+        - iDao: IDao
+        + execute(input: Number): AbstractEntity
+    }
+
+    abstract class BuscarPorParametros {
+        - iDao: IDao
+        + execute(input: SearchParameters): EntityPage
+    }
+
+    class ExcluirEntidade {
+        - iDao: IDao
+        + execute(input: AbstractEntity): Void
+    }
+
+    class AddInputToEntity {
+        - dependencies: IStrategy[]
+        + execute(input: AddInputDto): AbstractEntity
+    }
+
+    class UpdateInputToEntity {
+        - dependencies: IStrategy[]
+        + execute(input: UpdateInputDto): AbstractEntity
+    }
+
+    class EntityToOutput {
+        + execute(input: AbstractEntity): OutputDto
+    }
+
+    class ValidarDadosObrigatorios {
+        + execute(input: AbstractEntity): Void
+    }
+
+    class ValidarEmail {
+        - emailRegex: RegExp
+        + execute(input: Hospede): Void
+    }
+
+    class VerificarCPFUnico {
+        - hospedesDao: HospedesDao
+        + execute(input: Hospede): Void
+    }
+
+    class VerificarEmailUnico {
+        - hospedesDao: HospedesDao
+        + execute(input: Hospede): Void
+    }
+
+    class ValidarCapacidadeQuarto {
+        + execute(input: Quarto): Void
+    }
+
+    class ValidarPeriodoReserva {
+        + execute(input: Reserva): Void
+    }
+
+    class ValidarCapacidadeReserva {
+        + execute(input: Reserva): Void
+    }
+
+    class CalcularValorReserva {
+        + execute(input: Reserva): Reserva
+    }
+
+    class ValidarPagamentoAprovado {
+        + execute(input: Reserva): Void
+    }
+
+    class AplicarPoliticaCancelamento {
+        + execute(input: Reserva): Reserva
+    }
+
+    class EnviarNotificacao {
+        + execute(input: Notificacao): Void
+    }
+
+    AdicionarEntidade ..|> IStrategy
+    AtualizarEntidade ..|> IStrategy
+    BuscarPorId ..|> IStrategy
+    BuscarPorParametros ..|> IStrategy
+    ExcluirEntidade ..|> IStrategy
+    AddInputToEntity ..|> IStrategy
+    UpdateInputToEntity ..|> IStrategy
+    EntityToOutput ..|> IStrategy
+    ValidarDadosObrigatorios ..|> IStrategy
+    ValidarEmail ..|> IStrategy
+    VerificarCPFUnico ..|> IStrategy
+    VerificarEmailUnico ..|> IStrategy
+    ValidarCapacidadeQuarto ..|> IStrategy
+    ValidarPeriodoReserva ..|> IStrategy
+    ValidarCapacidadeReserva ..|> IStrategy
+    CalcularValorReserva ..|> IStrategy
+    ValidarPagamentoAprovado ..|> IStrategy
+    AplicarPoliticaCancelamento ..|> IStrategy
+    EnviarNotificacao ..|> IStrategy
+}
+
+' =========================================================
+' CORE DAO
+' =========================================================
+
+package "Core / DAO" as P_Dao {
+    interface EstadosDao
+    interface CidadesDao
+
+    interface HospedesDao {
+        + existsByCPF(cpf: CPF): Boolean
+        + existsByEmail(email: Email): Boolean
+    }
+
+    interface TiposQuartoDao
+    interface QuartosDao
+    interface PromocoesDao
+    interface PoliticasCancelamentoDao
+    interface ReservasDao {
+        + existsReservaAtivaParaQuarto(quarto: Quarto, entrada: Date, saida: Date): Boolean
+    }
+
+    interface PagamentosDao
+    interface NotificacoesDao
+    interface RelatoriosDao
+    interface RegistroAuditoriaDao
+
+    EstadosDao --|> IDao
+    CidadesDao --|> IDao
+    HospedesDao --|> IDao
+    TiposQuartoDao --|> IDao
+    QuartosDao --|> IDao
+    PromocoesDao --|> IDao
+    PoliticasCancelamentoDao --|> IDao
+    ReservasDao --|> IDao
+    PagamentosDao --|> IDao
+    NotificacoesDao --|> IDao
+    RelatoriosDao --|> IDao
+    RegistroAuditoriaDao --|> IDao
+}
+
+' =========================================================
+' CORE DOMAIN
+' =========================================================
+
+package "Core / Base" as P_Base {
+    abstract class AbstractEntity {
+        - id: Number
+        - createdAt: Date
+        - updatedAt: Date
+        - active: Boolean
+        + touch(): Void
+        + deactivate(): Void
+    }
+
+    class EntityPage {
+        + entities: AbstractEntity[]
+        + paginaAtual: Number
+        + quantidade: Number
+        + ordenacao: Ordenacao
+        + total: Number
+    }
+}
+
+package "Core / Value Objects" as P_ValueObjects {
+    abstract class Documento {
+        - numero: String
+    }
+
+    class CPF
+    class Email {
+        - endereco: String
+    }
+
+    class Telefone {
+        - ddd: String
+        - numero: String
+        - tipo: TipoTelefone
+    }
+
+    class Endereco {
+        - logradouro: String
+        - numero: String
+        - bairro: String
+        - complemento: String
+        - cep: String
+        - cidade: Cidade
+    }
+
+    enum TipoTelefone {
+        CELULAR
+        RESIDENCIAL
+        COMERCIAL
+    }
+
+    CPF --|> Documento
+    Telefone --> TipoTelefone
+    Endereco o-- Cidade
+}
+
+package "Core / Localização" as P_Localizacao {
+    class Estado {
+        - nome: String
+        - uf: String
+    }
+
+    class Cidade {
+        - nome: String
+        - estado: Estado
+    }
+
+    Estado --|> AbstractEntity
+    Cidade --|> AbstractEntity
+    Cidade o-- Estado
+}
+
+package "Core / Hóspedes" as P_Hospedes {
+    class Hospede {
+        - nomeCompleto: String
+        - dataNascimento: Date
+        - cpf: CPF
+        - email: Email
+        - telefone: Telefone
+        - endereco: Endereco
+    }
+
+    Hospede --|> AbstractEntity
+    Hospede o-- CPF
+    Hospede o-- Email
+    Hospede o-- Telefone
+    Hospede o-- Endereco
+}
+
+package "Core / Quartos" as P_Quartos {
+    class TipoQuarto {
+        - nome: String
+        - descricao: String
+    }
+
+    class Quarto {
+        - numero: String
+        - tipo: TipoQuarto
+        - capacidadeAdultos: Number
+        - capacidadeCriancas: Number
+        - precoBaseDiaria: Decimal
+        - status: StatusQuarto
+        + comporta(adultos: Number, criancas: Number): Boolean
+        + alterarStatus(status: StatusQuarto): Void
+    }
+
+    enum StatusQuarto {
+        DISPONIVEL
+        OCUPADO
+        RESERVADO
+        MANUTENCAO
+        INATIVO
+    }
+
+    TipoQuarto --|> AbstractEntity
+    Quarto --|> AbstractEntity
+    Quarto o-- TipoQuarto
+    Quarto --> StatusQuarto
+}
+
+package "Core / Promoções e Políticas" as P_PromocoesPoliticas {
+    class Promocao {
+        - nome: String
+        - descricao: String
+        - percentualDesconto: Decimal
+        - dataInicio: Date
+        - dataFim: Date
+        - ativa: Boolean
+        - cumulativa: Boolean
+        + estaVigente(data: Date): Boolean
+        + aplicarDesconto(valor: Decimal): Decimal
+    }
+
+    class PoliticaCancelamento {
+        - nome: String
+        - descricao: String
+        - horasMinimasSemMulta: Number
+        - percentualMulta: Decimal
+        - ativa: Boolean
+        + calcularMulta(reserva: Reserva): Decimal
+        + calcularValorEstorno(reserva: Reserva): Decimal
+    }
+
+    Promocao --|> AbstractEntity
+    PoliticaCancelamento --|> AbstractEntity
+}
+
+package "Core / Reservas" as P_Reservas {
+    class Reserva {
+        - codigo: String
+        - dataEntrada: Date
+        - dataSaida: Date
+        - quantidadeAdultos: Number
+        - quantidadeCriancas: Number
+        - status: StatusReserva
+        - canalOrigem: CanalReserva
+        - valorTotal: Decimal
+        + calcularQuantidadeDiarias(): Number
+        + calcularValorTotal(): Decimal
+        + confirmar(): Void
+        + cancelar(): Void
+        + marcarNoShow(): Void
+        + registrarCheckIn(): Void
+        + registrarCheckOut(): Void
+    }
+
+    enum StatusReserva {
+        PROPOSTA
+        CONFIRMADA
+        CANCELADA
+        EM_ESTADIA
+        FINALIZADA
+        NO_SHOW
+    }
+
+    enum CanalReserva {
+        SITE
+        TELEFONE
+        BALCAO
+        APLICATIVO
+        AGENCIA
+    }
+
+    Reserva --|> AbstractEntity
+    Reserva o-- Hospede
+    Reserva o-- Quarto
+    Reserva o-- PoliticaCancelamento
+    Reserva o-- "0..1" Promocao
+    Reserva --> StatusReserva
+    Reserva --> CanalReserva
+}
+
+package "Core / Pagamentos" as P_Pagamentos {
+    class Pagamento {
+        - valor: Decimal
+        - dataOperacao: Date
+        - formaPagamento: FormaPagamento
+        - status: StatusPagamento
+        + iniciar(): Void
+        + aprovar(): Void
+        + negar(): Void
+        + estornar(valor: Decimal): Void
+    }
+
+    enum FormaPagamento {
+        PIX
+        CARTAO_CREDITO
+        CARTAO_DEBITO
+        DINHEIRO
+        BOLETO
+    }
+
+    enum StatusPagamento {
+        INICIADO
+        APROVADO
+        NEGADO
+        ESTORNADO
+    }
+
+    Pagamento --|> AbstractEntity
+    Pagamento o-- Reserva
+    Pagamento --> FormaPagamento
+    Pagamento --> StatusPagamento
+}
+
+package "Core / Notificações" as P_Notificacoes {
+    class Notificacao {
+        - destinatario: Email
+        - assunto: String
+        - conteudo: String
+        - dataEnvio: Date
+        - tipo: TipoNotificacao
+        - status: StatusNotificacao
+        + montarConteudo(): Void
+        + marcarComoEnviada(): Void
+        + marcarComoFalha(): Void
+    }
+
+    enum TipoNotificacao {
+        CONFIRMACAO_RESERVA
+        CANCELAMENTO_RESERVA
+        LEMBRETE_ESTADIA
+        POS_ESTADIA
+    }
+
+    enum StatusNotificacao {
+        PENDENTE
+        ENVIADA
+        FALHA
+    }
+
+    Notificacao --|> AbstractEntity
+    Notificacao o-- Reserva
+    Notificacao --> Email
+    Notificacao --> TipoNotificacao
+    Notificacao --> StatusNotificacao
+}
+
+package "Core / Relatórios e Auditoria" as P_RelatoriosAuditoria {
+    abstract class Relatorio {
+        - periodoInicio: Date
+        - periodoFim: Date
+        - dataGeracao: Date
+        + validarPeriodo(): Void
+        + gerar(): Void
+    }
+
+    class RelatorioOcupacao {
+        - taxaOcupacao: Decimal
+        + calcularOcupacao(): Decimal
+    }
+
+    class RelatorioFinanceiro {
+        - receitaTotal: Decimal
+        + calcularReceita(): Decimal
+    }
+
+    class RelatorioOrigemReservas {
+        - canal: CanalReserva
+        - quantidadeReservas: Number
+        + calcularOrigem(): Void
+    }
+
+    class RelatorioDesempenhoPromocoes {
+        - quantidadeUso: Number
+        - receitaGerada: Decimal
+        + calcularDesempenho(): Void
+    }
+
+    class RegistroAuditoria {
+        - dataHora: DateTime
+        - usuario: String
+        - operacao: String
+        - entidadeAfetada: String
+        - identificadorEntidade: String
+        + registrar(): Void
+    }
+
+    RelatorioOcupacao --|> Relatorio
+    RelatorioFinanceiro --|> Relatorio
+    RelatorioOrigemReservas --|> Relatorio
+    RelatorioDesempenhoPromocoes --|> Relatorio
+    RegistroAuditoria --|> AbstractEntity
+    RelatorioOcupacao ..> Reserva
+    RelatorioOcupacao ..> Quarto
+    RelatorioFinanceiro ..> Reserva
+    RelatorioFinanceiro ..> Pagamento
+    RelatorioOrigemReservas ..> Reserva
+    RelatorioOrigemReservas --> CanalReserva
+    RelatorioDesempenhoPromocoes ..> Promocao
+    RelatorioDesempenhoPromocoes ..> Reserva
+    RegistroAuditoria ..> Reserva
+    RegistroAuditoria ..> Pagamento
+    RegistroAuditoria ..> Hospede
+    RegistroAuditoria ..> Quarto
+}
+
+' =========================================================
+' CORE DTO
+' =========================================================
+
+package "Core / DTO" as P_Dto {
+    abstract class AddInputDto
+    abstract class UpdateInputDto
+    abstract class OutputDto
+
+    abstract class SearchParameters {
+        + paginaAtual: Number
+        + quantidade: Number
+        + ordenacao: Ordenacao
+    }
+
+    class EntityPageDto {
+        + entities: OutputDto[]
+        + paginaAtual: Number
+        + quantidade: Number
+        + ordenacao: Ordenacao
+        + total: Number
+    }
+
+    class EstadoAddInputDto
+    class EstadoUpdateInputDto
+    class EstadoOutputDto
+    class EstadoSearchParameters
+
+    class CidadeAddInputDto
+    class CidadeUpdateInputDto
+    class CidadeOutputDto
+    class CidadeSearchParameters
+
+    class HospedeAddInputDto
+    class HospedeUpdateInputDto
+    class HospedeOutputDto
+    class HospedeSearchParameters
+
+    class TipoQuartoAddInputDto
+    class TipoQuartoUpdateInputDto
+    class TipoQuartoOutputDto
+    class TipoQuartoSearchParameters
+
+    class QuartoAddInputDto
+    class QuartoUpdateInputDto
+    class QuartoOutputDto
+    class QuartoSearchParameters
+
+    class PromocaoAddInputDto
+    class PromocaoUpdateInputDto
+    class PromocaoOutputDto
+    class PromocaoSearchParameters
+
+    class PoliticaCancelamentoAddInputDto
+    class PoliticaCancelamentoUpdateInputDto
+    class PoliticaCancelamentoOutputDto
+    class PoliticaCancelamentoSearchParameters
+
+    class ReservaAddInputDto
+    class ReservaUpdateInputDto
+    class ReservaOutputDto
+    class ReservaSearchParameters
+
+    class PagamentoAddInputDto
+    class PagamentoUpdateInputDto
+    class PagamentoOutputDto
+    class PagamentoSearchParameters
+
+    class NotificacaoAddInputDto
+    class NotificacaoUpdateInputDto
+    class NotificacaoOutputDto
+    class NotificacaoSearchParameters
+
+    class RelatorioSearchParameters
+    class RelatorioOutputDto
+    class RegistroAuditoriaOutputDto
+    class RegistroAuditoriaSearchParameters
+
+    EstadoAddInputDto --|> AddInputDto
+    EstadoUpdateInputDto --|> UpdateInputDto
+    EstadoOutputDto --|> OutputDto
+    EstadoSearchParameters --|> SearchParameters
+
+    CidadeAddInputDto --|> AddInputDto
+    CidadeUpdateInputDto --|> UpdateInputDto
+    CidadeOutputDto --|> OutputDto
+    CidadeSearchParameters --|> SearchParameters
+
+    HospedeAddInputDto --|> AddInputDto
+    HospedeUpdateInputDto --|> UpdateInputDto
+    HospedeOutputDto --|> OutputDto
+    HospedeSearchParameters --|> SearchParameters
+
+    TipoQuartoAddInputDto --|> AddInputDto
+    TipoQuartoUpdateInputDto --|> UpdateInputDto
+    TipoQuartoOutputDto --|> OutputDto
+    TipoQuartoSearchParameters --|> SearchParameters
+
+    QuartoAddInputDto --|> AddInputDto
+    QuartoUpdateInputDto --|> UpdateInputDto
+    QuartoOutputDto --|> OutputDto
+    QuartoSearchParameters --|> SearchParameters
+
+    PromocaoAddInputDto --|> AddInputDto
+    PromocaoUpdateInputDto --|> UpdateInputDto
+    PromocaoOutputDto --|> OutputDto
+    PromocaoSearchParameters --|> SearchParameters
+
+    PoliticaCancelamentoAddInputDto --|> AddInputDto
+    PoliticaCancelamentoUpdateInputDto --|> UpdateInputDto
+    PoliticaCancelamentoOutputDto --|> OutputDto
+    PoliticaCancelamentoSearchParameters --|> SearchParameters
+
+    ReservaAddInputDto --|> AddInputDto
+    ReservaUpdateInputDto --|> UpdateInputDto
+    ReservaOutputDto --|> OutputDto
+    ReservaSearchParameters --|> SearchParameters
+
+    PagamentoAddInputDto --|> AddInputDto
+    PagamentoUpdateInputDto --|> UpdateInputDto
+    PagamentoOutputDto --|> OutputDto
+    PagamentoSearchParameters --|> SearchParameters
+
+    NotificacaoAddInputDto --|> AddInputDto
+    NotificacaoUpdateInputDto --|> UpdateInputDto
+    NotificacaoOutputDto --|> OutputDto
+    NotificacaoSearchParameters --|> SearchParameters
+
+    RelatorioSearchParameters --|> SearchParameters
+    RelatorioOutputDto --|> OutputDto
+    RegistroAuditoriaOutputDto --|> OutputDto
+    RegistroAuditoriaSearchParameters --|> SearchParameters
+    EntityPageDto o-- OutputDto
+}
+
+' =========================================================
+' INFRASTRUCTURE / TYPEORM
+' =========================================================
+
+package "Infra / TypeORM Entities" as P_TypeormEntities {
+    class TypeormEstadoEntity <<entity>>
+    class TypeormCidadeEntity <<entity>>
+    class TypeormHospedeEntity <<entity>>
+    class TypeormTipoQuartoEntity <<entity>>
+    class TypeormQuartoEntity <<entity>>
+    class TypeormPromocaoEntity <<entity>>
+    class TypeormPoliticaCancelamentoEntity <<entity>>
+    class TypeormReservaEntity <<entity>>
+    class TypeormPagamentoEntity <<entity>>
+    class TypeormNotificacaoEntity <<entity>>
+    class TypeormRegistroAuditoriaEntity <<entity>>
+
+    TypeormCidadeEntity o-- TypeormEstadoEntity
+    TypeormHospedeEntity o-- TypeormCidadeEntity
+    TypeormQuartoEntity o-- TypeormTipoQuartoEntity
+    TypeormReservaEntity o-- TypeormHospedeEntity
+    TypeormReservaEntity o-- TypeormQuartoEntity
+    TypeormReservaEntity o-- TypeormPoliticaCancelamentoEntity
+    TypeormReservaEntity o-- "0..1" TypeormPromocaoEntity
+    TypeormPagamentoEntity o-- TypeormReservaEntity
+    TypeormNotificacaoEntity o-- TypeormReservaEntity
+}
+
+package "Infra / TypeORM Mappers" as P_Mappers {
+    class TypeormEstadoMapper <<mapper>> {
+        + {static} toDomain(entity: TypeormEstadoEntity): Estado
+        + {static} toTypeorm(estado: Estado): TypeormEstadoEntity
+    }
+
+    class TypeormCidadeMapper <<mapper>> {
+        + {static} toDomain(entity: TypeormCidadeEntity): Cidade
+        + {static} toTypeorm(cidade: Cidade): TypeormCidadeEntity
+    }
+
+    class TypeormHospedeMapper <<mapper>> {
+        + {static} toDomain(entity: TypeormHospedeEntity): Hospede
+        + {static} toTypeorm(hospede: Hospede): TypeormHospedeEntity
+    }
+
+    class TypeormTipoQuartoMapper <<mapper>>
+    class TypeormQuartoMapper <<mapper>>
+    class TypeormPromocaoMapper <<mapper>>
+    class TypeormPoliticaCancelamentoMapper <<mapper>>
+    class TypeormReservaMapper <<mapper>>
+    class TypeormPagamentoMapper <<mapper>>
+    class TypeormNotificacaoMapper <<mapper>>
+    class TypeormRegistroAuditoriaMapper <<mapper>>
+}
+
+package "Infra / TypeORM DAO" as P_TypeormDao {
+    class "Repository<T>" as Repository <<typeorm>>
+
+    class TypeormEstadosDao
+    class TypeormCidadesDao
+    class TypeormHospedesDao
+    class TypeormTiposQuartoDao
+    class TypeormQuartosDao
+    class TypeormPromocoesDao
+    class TypeormPoliticasCancelamentoDao
+    class TypeormReservasDao
+    class TypeormPagamentosDao
+    class TypeormNotificacoesDao
+    class TypeormRelatoriosDao
+    class TypeormRegistroAuditoriaDao
+
+    TypeormEstadosDao ..|> EstadosDao
+    TypeormCidadesDao ..|> CidadesDao
+    TypeormHospedesDao ..|> HospedesDao
+    TypeormTiposQuartoDao ..|> TiposQuartoDao
+    TypeormQuartosDao ..|> QuartosDao
+    TypeormPromocoesDao ..|> PromocoesDao
+    TypeormPoliticasCancelamentoDao ..|> PoliticasCancelamentoDao
+    TypeormReservasDao ..|> ReservasDao
+    TypeormPagamentosDao ..|> PagamentosDao
+    TypeormNotificacoesDao ..|> NotificacoesDao
+    TypeormRelatoriosDao ..|> RelatoriosDao
+    TypeormRegistroAuditoriaDao ..|> RegistroAuditoriaDao
+
+    TypeormEstadosDao o-- Repository
+    TypeormCidadesDao o-- Repository
+    TypeormHospedesDao o-- Repository
+    TypeormTiposQuartoDao o-- Repository
+    TypeormQuartosDao o-- Repository
+    TypeormPromocoesDao o-- Repository
+    TypeormPoliticasCancelamentoDao o-- Repository
+    TypeormReservasDao o-- Repository
+    TypeormPagamentosDao o-- Repository
+    TypeormNotificacoesDao o-- Repository
+    TypeormRegistroAuditoriaDao o-- Repository
+}
+
+' =========================================================
+' EXTERNAL INTEGRATIONS
+' =========================================================
+
+package "Infra / Integrações" as P_Integracoes {
+    interface PagamentoGateway {
+        + iniciarPagamento(pagamento: Pagamento): ResultadoPagamento
+        + estornarPagamento(pagamento: Pagamento): ResultadoPagamento
+    }
+
+    interface NotificacaoGateway {
+        + enviar(notificacao: Notificacao): ResultadoNotificacao
+    }
+
+    class ResultadoPagamento {
+        + aprovado: Boolean
+        + codigoTransacao: String
+        + mensagem: String
+    }
+
+    class ResultadoNotificacao {
+        + enviada: Boolean
+        + mensagem: String
+    }
+}
+
+' =========================================================
+' CROSS-PACKAGE DEPENDENCIES
+' =========================================================
+
+LocalidadesModule ..> EstadosController
+LocalidadesModule ..> CidadesController
+HospedesModule ..> HospedesController
+QuartosModule ..> TiposQuartoController
+QuartosModule ..> QuartosController
+PromocoesModule ..> PromocoesController
+PoliticasCancelamentoModule ..> PoliticasCancelamentoController
+ReservasModule ..> ReservasController
+PagamentosModule ..> PagamentosController
+NotificacoesModule ..> NotificacoesController
+RelatoriosModule ..> RelatoriosController
+AuditoriaModule ..> AuditoriaController
+
+AdicionarEntidade o-- IDao
+AtualizarEntidade o-- IDao
+BuscarPorId o-- IDao
+BuscarPorParametros o-- IDao
+ExcluirEntidade o-- IDao
+VerificarCPFUnico o-- HospedesDao
+VerificarEmailUnico o-- HospedesDao
+ValidarPeriodoReserva ..> Reserva
+ValidarCapacidadeReserva ..> Reserva
+ValidarPagamentoAprovado ..> Pagamento
+AplicarPoliticaCancelamento ..> PoliticaCancelamento
+EnviarNotificacao o-- NotificacaoGateway
+
+PagamentosModule ..> PagamentoGateway
+NotificacoesModule ..> NotificacaoGateway
+
+TypeormEstadoMapper ..> Estado
+TypeormCidadeMapper ..> Cidade
+TypeormHospedeMapper ..> Hospede
+TypeormTipoQuartoMapper ..> TipoQuarto
+TypeormQuartoMapper ..> Quarto
+TypeormPromocaoMapper ..> Promocao
+TypeormPoliticaCancelamentoMapper ..> PoliticaCancelamento
+TypeormReservaMapper ..> Reserva
+TypeormPagamentoMapper ..> Pagamento
+TypeormNotificacaoMapper ..> Notificacao
+TypeormRegistroAuditoriaMapper ..> RegistroAuditoria
+
+TypeormEstadoMapper ..> TypeormEstadoEntity
+TypeormCidadeMapper ..> TypeormCidadeEntity
+TypeormHospedeMapper ..> TypeormHospedeEntity
+TypeormTipoQuartoMapper ..> TypeormTipoQuartoEntity
+TypeormQuartoMapper ..> TypeormQuartoEntity
+TypeormPromocaoMapper ..> TypeormPromocaoEntity
+TypeormPoliticaCancelamentoMapper ..> TypeormPoliticaCancelamentoEntity
+TypeormReservaMapper ..> TypeormReservaEntity
+TypeormPagamentoMapper ..> TypeormPagamentoEntity
+TypeormNotificacaoMapper ..> TypeormNotificacaoEntity
+TypeormRegistroAuditoriaMapper ..> TypeormRegistroAuditoriaEntity
+
+TypeormEstadosDao ..> TypeormEstadoMapper
+TypeormCidadesDao ..> TypeormCidadeMapper
+TypeormHospedesDao ..> TypeormHospedeMapper
+TypeormTiposQuartoDao ..> TypeormTipoQuartoMapper
+TypeormQuartosDao ..> TypeormQuartoMapper
+TypeormPromocoesDao ..> TypeormPromocaoMapper
+TypeormPoliticasCancelamentoDao ..> TypeormPoliticaCancelamentoMapper
+TypeormReservasDao ..> TypeormReservaMapper
+TypeormPagamentosDao ..> TypeormPagamentoMapper
+TypeormNotificacoesDao ..> TypeormNotificacaoMapper
+TypeormRegistroAuditoriaDao ..> TypeormRegistroAuditoriaMapper
+
+P_Modules -[hidden]down- P_Http
+P_Http -[hidden]down- P_Protocols
+P_Protocols -[hidden]right- P_Facade
+P_Facade -[hidden]right- P_Strategies
+P_Strategies -[hidden]down- P_Dao
+P_Dao -[hidden]down- P_Base
+P_Base -[hidden]right- P_ValueObjects
+P_ValueObjects -[hidden]right- P_Localizacao
+P_Localizacao -[hidden]down- P_Hospedes
+P_Hospedes -[hidden]right- P_Quartos
+P_Quartos -[hidden]right- P_PromocoesPoliticas
+P_PromocoesPoliticas -[hidden]down- P_Reservas
+P_Reservas -[hidden]right- P_Pagamentos
+P_Pagamentos -[hidden]right- P_Notificacoes
+P_Notificacoes -[hidden]down- P_RelatoriosAuditoria
+P_Dto -[hidden]down- P_TypeormEntities
+P_TypeormEntities -[hidden]right- P_Mappers
+P_Mappers -[hidden]right- P_TypeormDao
+P_TypeormDao -[hidden]down- P_Integracoes
+
+@enduml

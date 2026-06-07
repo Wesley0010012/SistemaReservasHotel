@@ -1,0 +1,419 @@
+{
+  "info": {
+    "_postman_id": "4db7f7e6-7a9d-4d1b-8c7d-1bb65a8f5f5f",
+    "name": "Sistema Reserva Hotel - Hospedes - Docker",
+    "description": "Collection para executar os fluxos de teste de hospedes via NGINX API Gateway do ambiente Docker.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "if (!pm.collectionVariables.get('testRunId')) {",
+          "  const now = Date.now().toString();",
+          "  pm.collectionVariables.set('testRunId', now);",
+          "  pm.collectionVariables.set('cpfTeste', now.slice(-11).padStart(11, '1'));",
+          "  pm.collectionVariables.set('emailTeste', `hospede.${now}@teste.local`);",
+          "  pm.collectionVariables.set('emailAtualizadoTeste', `hospede.atualizado.${now}@teste.local`);",
+          "}"
+        ]
+      }
+    }
+  ],
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:8080"
+    },
+    {
+      "key": "hospedeId",
+      "value": "1"
+    },
+    {
+      "key": "cidadeId",
+      "value": "1"
+    },
+    {
+      "key": "testRunId",
+      "value": ""
+    },
+    {
+      "key": "cpfTeste",
+      "value": ""
+    },
+    {
+      "key": "emailTeste",
+      "value": ""
+    },
+    {
+      "key": "emailAtualizadoTeste",
+      "value": ""
+    }
+  ],
+  "item": [
+    {
+      "name": "00 - Gateway",
+      "item": [
+        {
+          "name": "Health do NGINX",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('gateway respondeu 200', function () {",
+                  "  pm.response.to.have.status(200);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/health",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "health"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "01 - Fluxo CRUD de Hospedes",
+      "item": [
+        {
+          "name": "01 - Cadastrar hospede",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('cadastro retornou sucesso', function () {",
+                  "  pm.expect(pm.response.code).to.be.oneOf([200, 201]);",
+                  "});",
+                  "",
+                  "const response = pm.response.json();",
+                  "pm.test('cadastro retornou corpo JSON', function () {",
+                  "  pm.expect(response).to.be.an('object');",
+                  "});",
+                  "",
+                  "if (response.id) {",
+                  "  pm.collectionVariables.set('hospedeId', response.id);",
+                  "}",
+                  "",
+                  "pm.test('nome retornado confere', function () {",
+                  "  pm.expect(response.nomeCompleto).to.eql('Maria Silva Santos');",
+                  "});",
+                  "",
+                  "postman.setNextRequest('02 - Consultar hospede por id');"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nomeCompleto\": \"Maria Silva Santos\",\n  \"dataNascimento\": \"1990-05-15T00:00:00.000Z\",\n  \"cpf\": \"{{cpfTeste}}\",\n  \"email\": \"{{emailTeste}}\",\n  \"telefoneDdd\": \"11\",\n  \"telefoneNumero\": \"999999999\",\n  \"telefoneTipo\": \"CELULAR\",\n  \"enderecoLogradouro\": \"Rua das Flores\",\n  \"enderecoNumero\": \"123\",\n  \"enderecoBairro\": \"Centro\",\n  \"enderecoComplemento\": \"Apto 45\",\n  \"enderecoCep\": \"01001000\",\n  \"cidadeId\": {{cidadeId}}\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/hospedes",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "hospedes"
+              ]
+            }
+          }
+        },
+        {
+          "name": "02 - Consultar hospede por id",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('consulta retornou sucesso', function () {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "const response = pm.response.json();",
+                  "pm.test('id retornado confere', function () {",
+                  "  pm.expect(String(response.id)).to.eql(String(pm.collectionVariables.get('hospedeId')));",
+                  "});",
+                  "",
+                  "postman.setNextRequest('03 - Alterar hospede');"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/hospedes/{{hospedeId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "hospedes",
+                "{{hospedeId}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "03 - Alterar hospede",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('alteracao retornou sucesso', function () {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "const response = pm.response.json();",
+                  "pm.test('email foi atualizado', function () {",
+                  "  pm.expect(response.email).to.eql(pm.collectionVariables.get('emailAtualizadoTeste'));",
+                  "});",
+                  "",
+                  "postman.setNextRequest('04 - Consultar hospede alterado');"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"id\": {{hospedeId}},\n  \"nomeCompleto\": \"Maria Silva Santos\",\n  \"dataNascimento\": \"1990-05-15T00:00:00.000Z\",\n  \"cpf\": \"{{cpfTeste}}\",\n  \"email\": \"{{emailAtualizadoTeste}}\",\n  \"telefoneDdd\": \"11\",\n  \"telefoneNumero\": \"988888888\",\n  \"telefoneTipo\": \"CELULAR\",\n  \"enderecoLogradouro\": \"Avenida Paulista\",\n  \"enderecoNumero\": \"1000\",\n  \"enderecoBairro\": \"Bela Vista\",\n  \"enderecoComplemento\": \"Conjunto 101\",\n  \"enderecoCep\": \"01310000\",\n  \"cidadeId\": {{cidadeId}}\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/hospedes",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "hospedes"
+              ]
+            }
+          }
+        },
+        {
+          "name": "04 - Consultar hospede alterado",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('consulta retornou sucesso', function () {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "const response = pm.response.json();",
+                  "pm.test('telefone atualizado confere', function () {",
+                  "  pm.expect(response.telefoneNumero).to.eql('988888888');",
+                  "});",
+                  "",
+                  "postman.setNextRequest('05 - Inativar hospede');"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/hospedes/{{hospedeId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "hospedes",
+                "{{hospedeId}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "05 - Inativar hospede",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('inativacao retornou sucesso', function () {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "const response = pm.response.json();",
+                  "pm.test('hospede ficou inativo', function () {",
+                  "  pm.expect(response.active).to.eql(false);",
+                  "});",
+                  "",
+                  "postman.setNextRequest(null);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/hospedes/{{hospedeId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "hospedes",
+                "{{hospedeId}}"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "02 - Fluxos de Regras de Negocio",
+      "item": [
+        {
+          "name": "Email invalido deve falhar",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('email invalido retorna HTTP 400', function () {",
+                  "  pm.response.to.have.status(400);",
+                  "});",
+                  "",
+                  "const response = pm.response.json();",
+                  "pm.test('erro retorna somente mensagem e status', function () {",
+                  "  pm.expect(Object.keys(response).sort()).to.eql(['mensagem', 'status']);",
+                  "});",
+                  "",
+                  "pm.test('erro retorna status de validacao do project-custom-errors', function () {",
+                  "  pm.expect(response.status).to.eql(5);",
+                  "});",
+                  "",
+                  "pm.test('mensagem informa email invalido', function () {",
+                  "  pm.expect(response.mensagem).to.include('E-mail inválido');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nomeCompleto\": \"Email Invalido\",\n  \"dataNascimento\": \"1990-05-15T00:00:00.000Z\",\n  \"cpf\": \"{{cpfTeste}}\",\n  \"email\": \"email-invalido\",\n  \"telefoneDdd\": \"11\",\n  \"telefoneNumero\": \"999999999\",\n  \"telefoneTipo\": \"CELULAR\",\n  \"enderecoLogradouro\": \"Rua das Flores\",\n  \"enderecoNumero\": \"123\",\n  \"enderecoBairro\": \"Centro\",\n  \"enderecoComplemento\": \"Apto 45\",\n  \"enderecoCep\": \"01001000\",\n  \"cidadeId\": {{cidadeId}}\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/hospedes",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "hospedes"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Dados obrigatorios devem falhar",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('dados obrigatorios ausentes retornam HTTP 400', function () {",
+                  "  pm.response.to.have.status(400);",
+                  "});",
+                  "",
+                  "const response = pm.response.json();",
+                  "pm.test('erro retorna somente mensagem e status', function () {",
+                  "  pm.expect(Object.keys(response).sort()).to.eql(['mensagem', 'status']);",
+                  "});",
+                  "",
+                  "pm.test('erro retorna status de validacao do project-custom-errors', function () {",
+                  "  pm.expect(response.status).to.eql(5);",
+                  "});",
+                  "",
+                  "pm.test('mensagem informa campo obrigatorio', function () {",
+                  "  pm.expect(response.mensagem).to.include('obrigatório');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nomeCompleto\": \"\",\n  \"dataNascimento\": \"1990-05-15T00:00:00.000Z\",\n  \"cpf\": \"\",\n  \"email\": \"obrigatorio.{{testRunId}}@teste.local\",\n  \"telefoneDdd\": \"11\",\n  \"telefoneNumero\": \"999999999\",\n  \"telefoneTipo\": \"CELULAR\",\n  \"enderecoLogradouro\": \"Rua das Flores\",\n  \"enderecoNumero\": \"123\",\n  \"enderecoBairro\": \"Centro\",\n  \"enderecoComplemento\": \"Apto 45\",\n  \"enderecoCep\": \"01001000\",\n  \"cidadeId\": {{cidadeId}}\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/hospedes",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "hospedes"
+              ]
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

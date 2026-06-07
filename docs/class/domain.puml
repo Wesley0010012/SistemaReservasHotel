@@ -1,0 +1,489 @@
+@startuml "Domain Class Diagram - Sistema de Reserva de Hotel"
+
+left to right direction
+
+skinparam classAttributeIconSize 0
+skinparam packageStyle rectangle
+skinparam shadowing false
+skinparam linetype ortho
+skinparam ranksep 55
+skinparam nodesep 45
+
+skinparam defaultFontName Arial
+skinparam ArrowColor #64748B
+skinparam ArrowThickness 1
+
+skinparam class {
+    BackgroundColor #EFF6FF
+    BorderColor #2563EB
+    FontColor #0F172A
+    HeaderBackgroundColor #DBEAFE
+}
+
+skinparam abstractClass {
+    BackgroundColor #F8FAFC
+    BorderColor #475569
+    FontColor #0F172A
+    HeaderBackgroundColor #E2E8F0
+}
+
+skinparam enum {
+    BackgroundColor #F0FDF4
+    BorderColor #16A34A
+    FontColor #052E16
+    HeaderBackgroundColor #DCFCE7
+}
+
+skinparam package {
+    BackgroundColor #FFFFFF
+    BorderColor #CBD5E1
+    FontColor #0F172A
+}
+
+' =========================================================
+' BASE
+' =========================================================
+
+package "Base" as P_Base {
+
+    abstract class AbstractEntity {
+        - id: Long
+        - createdAt: Date
+        - updatedAt: Date
+        - active: Boolean
+
+        + ativar(): Void
+        + inativar(): Void
+        + validar(): Void
+    }
+
+}
+
+' =========================================================
+' VALUE OBJECTS
+' =========================================================
+
+package "Value Objects" as P_ValueObjects {
+
+    abstract class Documento {
+        - numero: String
+
+        + validar(): Void
+    }
+
+    class CPF {
+        + validar(): Void
+    }
+
+    class Email {
+        - endereco: String
+
+        + validar(): Void
+    }
+
+    class Telefone {
+        - ddd: String
+        - numero: String
+        - tipo: TipoTelefone
+
+        + validar(): Void
+    }
+
+    enum TipoTelefone {
+        CELULAR
+        RESIDENCIAL
+        COMERCIAL
+    }
+
+    class Endereco {
+        - logradouro: String
+        - numero: String
+        - bairro: String
+        - complemento: String
+        - cep: String
+
+        + validar(): Void
+    }
+
+    CPF --|> Documento
+    Telefone --> TipoTelefone
+    Endereco o-- Cidade
+}
+
+' =========================================================
+' LOCALIZAÇÃO
+' =========================================================
+
+package "Localização" as P_Localizacao {
+
+    class Cidade {
+        - nome: String
+
+        + validar(): Void
+    }
+
+    class Estado {
+        - nome: String
+        - uf: String
+
+        + validar(): Void
+    }
+
+    Cidade o-- Estado
+    Cidade --|> AbstractEntity
+    Estado --|> AbstractEntity
+}
+
+' =========================================================
+' HÓSPEDES
+' =========================================================
+
+package "Hóspedes" as P_Hospedes {
+
+    class Hospede {
+        - nomeCompleto: String
+        - dataNascimento: Date
+        - cpf: CPF
+        - email: Email
+        - telefone: Telefone
+        - endereco: Endereco
+
+        + validarDadosObrigatorios(): Void
+    }
+
+    Hospede --|> AbstractEntity
+
+    Hospede o-- CPF
+    Hospede o-- Email
+    Hospede o-- Telefone
+    Hospede o-- Endereco
+}
+
+' =========================================================
+' QUARTOS
+' =========================================================
+
+package "Quartos" as P_Quartos {
+
+    class TipoQuarto {
+        - nome: String
+        - descricao: String
+    }
+
+    class Quarto {
+        - numero: String
+        - tipo: TipoQuarto
+        - capacidadeAdultos: Integer
+        - capacidadeCriancas: Integer
+        - precoBaseDiaria: Decimal
+        - status: StatusQuarto
+
+        + validarDadosObrigatorios(): Void
+        + validarPrecoBase(): Void
+        + validarCapacidade(): Void
+        + comporta(adultos: Integer, criancas: Integer): Boolean
+        + alterarStatus(status: StatusQuarto): Void
+    }
+
+    enum StatusQuarto {
+        DISPONIVEL
+        OCUPADO
+        RESERVADO
+        MANUTENCAO
+        INATIVO
+    }
+
+    TipoQuarto --|> AbstractEntity
+    Quarto --|> AbstractEntity
+
+    Quarto o-- TipoQuarto
+    Quarto --> StatusQuarto
+}
+
+' =========================================================
+' PROMOÇÕES E POLÍTICAS
+' =========================================================
+
+package "Promoções e Políticas" as P_PromocoesPoliticas {
+
+    class Promocao {
+        - nome: String
+        - descricao: String
+        - percentualDesconto: Decimal
+        - dataInicio: Date
+        - dataFim: Date
+        - ativa: Boolean
+        - cumulativa: Boolean
+
+        + validar(): Void
+        + validarDadosObrigatorios(): Void
+        + validarPeriodo(): Void
+        + validarPercentualDesconto(): Void
+        + estaVigente(data: Date): Boolean
+        + aplicarDesconto(valor: Decimal): Decimal
+        + inativarPromocao(): Void
+    }
+
+    class PoliticaCancelamento {
+        - nome: String
+        - descricao: String
+        - horasMinimasSemMulta: Integer
+        - percentualMulta: Decimal
+        - ativa: Boolean
+
+        + validar(): Void
+        + validarDadosObrigatorios(): Void
+        + validarPercentualMulta(): Void
+        + calcularMulta(reserva: Reserva): Decimal
+        + calcularValorEstorno(reserva: Reserva): Decimal
+        + inativarPolitica(): Void
+    }
+
+    Promocao --|> AbstractEntity
+    PoliticaCancelamento --|> AbstractEntity
+}
+
+' =========================================================
+' RESERVAS
+' =========================================================
+
+package "Reservas" as P_Reservas {
+
+    class Reserva {
+        - codigo: String
+        - dataEntrada: Date
+        - dataSaida: Date
+        - quantidadeAdultos: Integer
+        - quantidadeCriancas: Integer
+        - status: StatusReserva
+        - canalOrigem: CanalReserva
+        - valorTotal: Decimal
+
+        + validar(): Void
+        + validarDadosObrigatorios(): Void
+        + validarPeriodo(): Void
+        + validarCapacidadeDoQuarto(): Void
+        + validarMinimoDiariasEmFeriado(): Void
+        + validarLimitePadraoPorQuarto(): Void
+        + calcularQuantidadeDiarias(): Integer
+        + calcularValorTotal(): Decimal
+        + aplicarPromocao(): Void
+        + confirmar(): Void
+        + alterarReserva(): Void
+        + cancelar(): Void
+        + marcarNoShow(): Void
+        + registrarCheckIn(): Void
+        + registrarCheckOut(): Void
+    }
+
+    enum StatusReserva {
+        PROPOSTA
+        CONFIRMADA
+        CANCELADA
+        EM_ESTADIA
+        FINALIZADA
+        NO_SHOW
+    }
+
+    enum CanalReserva {
+        SITE
+        TELEFONE
+        BALCAO
+        APLICATIVO
+        AGENCIA
+    }
+
+    Reserva --|> AbstractEntity
+
+    Reserva o-- Hospede
+    Reserva o-- Quarto
+    Reserva o-- PoliticaCancelamento
+    Reserva o-- "0..1" Promocao
+
+    Reserva --> StatusReserva
+    Reserva --> CanalReserva
+}
+
+' =========================================================
+' PAGAMENTOS
+' =========================================================
+
+package "Pagamentos" as P_Pagamentos {
+
+    class Pagamento {
+        - valor: Decimal
+        - dataOperacao: Date
+        - formaPagamento: FormaPagamento
+        - status: StatusPagamento
+
+        + validar(): Void
+        + validarDadosObrigatorios(): Void
+        + validarValor(): Void
+        + iniciar(): Void
+        + aprovar(): Void
+        + negar(): Void
+        + estornar(valor: Decimal): Void
+        + validarEstorno(): Void
+    }
+
+    enum FormaPagamento {
+        PIX
+        CARTAO_CREDITO
+        CARTAO_DEBITO
+        DINHEIRO
+        BOLETO
+    }
+
+    enum StatusPagamento {
+        INICIADO
+        APROVADO
+        NEGADO
+        ESTORNADO
+    }
+
+    Pagamento --|> AbstractEntity
+
+    Pagamento o-- Reserva
+    Pagamento --> FormaPagamento
+    Pagamento --> StatusPagamento
+}
+
+' =========================================================
+' NOTIFICAÇÕES
+' =========================================================
+
+package "Notificações" as P_Notificacoes {
+
+    class Notificacao {
+        - destinatario: Email
+        - assunto: String
+        - conteudo: String
+        - dataEnvio: Date
+        - tipo: TipoNotificacao
+        - status: StatusNotificacao
+
+        + validar(): Void
+        + validarDadosObrigatorios(): Void
+        + validarConteudoMinimo(): Void
+        + montarConteudo(): Void
+        + marcarComoEnviada(): Void
+        + marcarComoFalha(): Void
+    }
+
+    enum TipoNotificacao {
+        CONFIRMACAO_RESERVA
+        CANCELAMENTO_RESERVA
+        LEMBRETE_ESTADIA
+        POS_ESTADIA
+    }
+
+    enum StatusNotificacao {
+        PENDENTE
+        ENVIADA
+        FALHA
+    }
+
+    Notificacao --|> AbstractEntity
+
+    Notificacao o-- Reserva
+    Notificacao --> Email
+    Notificacao --> TipoNotificacao
+    Notificacao --> StatusNotificacao
+}
+
+' =========================================================
+' RELATÓRIOS
+' =========================================================
+
+package "Relatórios" as P_Relatorios {
+
+    abstract class Relatorio {
+        - periodoInicio: Date
+        - periodoFim: Date
+        - dataGeracao: Date
+
+        + validarPeriodo(): Void
+        + gerar(): Void
+    }
+
+    class RelatorioOcupacao {
+        - taxaOcupacao: Decimal
+
+        + calcularOcupacao(): Decimal
+    }
+
+    class RelatorioFinanceiro {
+        - receitaTotal: Decimal
+
+        + calcularReceita(): Decimal
+    }
+
+    class RelatorioOrigemReservas {
+        - canal: CanalReserva
+        - quantidadeReservas: Integer
+
+        + calcularOrigem(): Void
+    }
+
+    class RelatorioDesempenhoPromocoes {
+        - quantidadeUso: Integer
+        - receitaGerada: Decimal
+
+        + calcularDesempenho(): Void
+    }
+
+    RelatorioOcupacao --|> Relatorio
+    RelatorioFinanceiro --|> Relatorio
+    RelatorioOrigemReservas --|> Relatorio
+    RelatorioDesempenhoPromocoes --|> Relatorio
+
+    RelatorioOcupacao ..> Reserva
+    RelatorioOcupacao ..> Quarto
+
+    RelatorioFinanceiro ..> Reserva
+    RelatorioFinanceiro ..> Pagamento
+
+    RelatorioOrigemReservas ..> Reserva
+    RelatorioOrigemReservas --> CanalReserva
+
+    RelatorioDesempenhoPromocoes ..> Promocao
+    RelatorioDesempenhoPromocoes ..> Reserva
+}
+
+' =========================================================
+' AUDITORIA
+' =========================================================
+
+package "Auditoria" as P_Auditoria {
+
+    class RegistroAuditoria {
+        - dataHora: DateTime
+        - usuario: String
+        - operacao: String
+        - entidadeAfetada: String
+        - identificadorEntidade: String
+
+        + validar(): Void
+        + registrar(): Void
+    }
+
+    RegistroAuditoria --|> AbstractEntity
+
+    RegistroAuditoria ..> Reserva
+    RegistroAuditoria ..> Pagamento
+    RegistroAuditoria ..> Hospede
+    RegistroAuditoria ..> Quarto
+}
+
+P_Base -[hidden]down- P_ValueObjects
+P_ValueObjects -[hidden]right- P_Localizacao
+P_Localizacao -[hidden]down- P_Hospedes
+P_Hospedes -[hidden]right- P_Quartos
+P_Quartos -[hidden]right- P_PromocoesPoliticas
+P_PromocoesPoliticas -[hidden]down- P_Reservas
+P_Reservas -[hidden]right- P_Pagamentos
+P_Pagamentos -[hidden]right- P_Notificacoes
+P_Notificacoes -[hidden]down- P_Relatorios
+P_Relatorios -[hidden]right- P_Auditoria
+
+@enduml

@@ -1,0 +1,113 @@
+@startuml "UseCase Diagram - Sistema de Reserva de Hotel"
+
+left to right direction
+
+skinparam packageStyle rectangle
+skinparam shadowing false
+skinparam linetype ortho
+skinparam ranksep 55
+skinparam nodesep 45
+
+skinparam defaultFontName Arial
+skinparam ArrowColor #64748B
+skinparam ArrowThickness 1
+
+skinparam actor {
+  BackgroundColor #FFFFFF
+  BorderColor #334155
+  FontColor #0F172A
+}
+
+skinparam rectangle {
+  BackgroundColor #F8FAFC
+  BorderColor #475569
+  FontColor #0F172A
+}
+
+skinparam package {
+  BackgroundColor #FFFFFF
+  BorderColor #CBD5E1
+  FontColor #0F172A
+}
+
+skinparam usecase {
+  BackgroundColor #EFF6FF
+  BorderColor #2563EB
+  FontColor #0F172A
+}
+
+skinparam note {
+  BackgroundColor #FFF7ED
+  BorderColor #FDBA74
+  FontColor #7C2D12
+}
+
+actor "Usuário" as Usuario
+actor "Serviço de Pagamento" as ServicoPagamento
+actor "Serviço de Notificação" as ServicoNotificacao
+
+note bottom of Usuario
+  Os perfis de acesso dos usuários
+  poderão ser definidos futuramente.
+end note
+
+rectangle "Sistema de Reserva de Hotel" {
+  package "Cadastros" {
+    usecase "UC001 - Manter Quartos" as UC001
+    usecase "UC002 - Manter Hóspedes" as UC002
+    usecase "UC003 - Manter Promoções" as UC003
+    usecase "UC004 - Manter Políticas de Cancelamento" as UC004
+  }
+
+  package "Reservas" {
+    usecase "UC005 - Consultar Disponibilidade" as UC005
+    usecase "UC007 - Manter Reserva" as UC007
+    usecase "UC010 - Consultar Reservas" as UC010
+    usecase "UC012 - Registrar Check-in" as UC012
+    usecase "UC013 - Registrar Check-out" as UC013
+  }
+
+  package "Financeiro" {
+    usecase "UC014 - Iniciar Pagamento" as UC014
+    usecase "UC015 - Registrar Resultado de Pagamento" as UC015
+    usecase "UC016 - Estornar Pagamento" as UC016
+    usecase "UC017 - Consultar Pagamentos" as UC017
+  }
+
+  package "Comunicação e Gestão" {
+    usecase "UC018 - Notificar" as UC018
+    usecase "UC022 - Gerar Relatório" as UC022
+  }
+}
+
+Usuario -right- UC001
+Usuario -right- UC002
+Usuario -right- UC003
+Usuario -right- UC004
+Usuario -right- UC007
+Usuario -right- UC010
+Usuario -right- UC012
+Usuario -right- UC013
+Usuario -right- UC017
+Usuario -right- UC022
+
+UC007 ..> UC005 : <<include>>
+UC007 ..> UC014 : <<include>>
+UC007 ..> UC018 : <<include>>
+UC007 ..> UC016 : <<extend>>
+
+UC012 ..> UC010 : <<include>>
+UC012 ..> UC018 : <<include>>
+UC013 ..> UC010 : <<include>>
+UC013 ..> UC018 : <<include>>
+
+UC014 -right- ServicoPagamento : notifica / retorna
+UC016 -right- ServicoPagamento : notifica / retorna
+ServicoPagamento -left- UC015 : informa / registra
+
+UC018 -right- ServicoNotificacao : notifica / retorna
+
+ServicoPagamento -[hidden]down- ServicoNotificacao
+UC014 -[hidden]down- UC016
+
+@enduml
