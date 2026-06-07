@@ -1,0 +1,179 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Hospedes | Sistema Reserva Hotel</title>
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <main class="mock-shell app-shell">
+      <header class="sidebar topbar">
+        <div class="topbar__inner">
+          <a class="brand" href="/hospedes" aria-label="Hospedes">
+            <img src="/assets/hero.png" alt="" class="brand__mark" />
+            <div>
+              <h1>Hospedes</h1>
+              <p>Sistema de Reserva de Hotel</p>
+            </div>
+          </a>
+          <nav class="tabs side-nav" aria-label="Navegacao principal">
+            <a class="tab nav-item tab--active" href="/hospedes">Hospedes</a>
+            <a class="tab nav-item" href="/quartos" data-mock-path="/quartos">Quartos</a>
+            <a class="tab nav-item" href="/promocoes" data-mock-path="/promocoes">Promocoes</a>
+            <a class="tab nav-item" href="/politicas-cancelamento" data-mock-path="/politicas-cancelamento">Politicas</a>
+            <a class="tab nav-item" href="/reservas" data-mock-path="/reservas">Reservas</a>
+            <a class="tab nav-item" href="/pagamentos" data-mock-path="/pagamentos">Pagamentos</a>
+            <a class="tab nav-item" href="/notificacoes" data-mock-path="/notificacoes">Notificacoes</a>
+            <a class="tab nav-item" href="/relatorios" data-mock-path="/relatorios">Relatorios</a>
+          </nav>
+        </div>
+      </header>
+
+      <section class="workspace mock-main">
+        <header class="mock-header">
+          <div>
+            <p class="eyebrow">CRUD funcional</p>
+            <h1>Consultar Hóspedes</h1>
+          </div>
+          <div class="header-actions">
+            <a class="icon-button" href="/hospedes/add/" aria-label="Novo hóspede">+</a>
+          </div>
+        </header>
+
+        <div class="message message--success" id="successMessage" hidden></div>
+        <div class="message message--error" id="errorMessage" hidden></div>
+
+        <section class="view">
+          <form class="panel filters" id="filterForm">
+            <div class="grid grid--filters">
+              <label class="field">
+                <span>Nome</span>
+                <input id="filterNome" type="search" autocomplete="off" />
+              </label>
+              <label class="field">
+                <span>Data nasc.</span>
+                <input id="filterDataNascimento" type="date" />
+              </label>
+              <label class="field">
+                <span>CPF</span>
+                <input id="filterCpf" type="search" autocomplete="off" />
+              </label>
+              <label class="field">
+                <span>E-mail</span>
+                <input id="filterEmail" type="search" autocomplete="off" />
+              </label>
+              <label class="field">
+                <span>DDD</span>
+                <input id="filterTelefoneDdd" type="search" inputmode="numeric" autocomplete="off" />
+              </label>
+              <label class="field">
+                <span>Telefone</span>
+                <input id="filterTelefoneNumero" type="search" inputmode="numeric" autocomplete="off" />
+              </label>
+              <label class="field">
+                <span>Tipo telefone</span>
+                <select id="filterTelefoneTipo">
+                  <option value="">Todos</option>
+                  <option value="CELULAR">Celular</option>
+                  <option value="RESIDENCIAL">Residencial</option>
+                  <option value="COMERCIAL">Comercial</option>
+                </select>
+              </label>
+              <label class="field">
+                <span>CEP</span>
+                <input id="filterEnderecoCep" type="search" inputmode="numeric" autocomplete="off" />
+              </label>
+              <label class="field field--wide">
+                <span>Logradouro</span>
+                <input id="filterEnderecoLogradouro" type="search" autocomplete="off" />
+              </label>
+              <label class="field">
+                <span>Número</span>
+                <input id="filterEnderecoNumero" type="search" autocomplete="off" />
+              </label>
+              <label class="field">
+                <span>Bairro</span>
+                <input id="filterEnderecoBairro" type="search" autocomplete="off" />
+              </label>
+              <label class="field">
+                <span>Complemento</span>
+                <input id="filterEnderecoComplemento" type="search" autocomplete="off" />
+              </label>
+              <label class="field">
+                <span>Estado</span>
+                <select id="filterEstadoId">
+                  <option value="">Carregar estados</option>
+                </select>
+              </label>
+              <label class="field">
+                <span>Cidade</span>
+                <select id="filterCidadeId" disabled>
+                  <option value="">Selecione um estado</option>
+                </select>
+              </label>
+              <label class="field">
+                <span>Quantidade</span>
+                <select id="filterQuantidade">
+                  <option value="10">10</option>
+                  <option value="20">20</option>
+                  <option value="50">50</option>
+                  <option value="100">100</option>
+                </select>
+              </label>
+              <label class="field">
+                <span>Ordenação</span>
+                <select id="filterOrdenacao">
+                  <option value="DESC">DESC</option>
+                  <option value="ASC">ASC</option>
+                </select>
+              </label>
+              <div class="actions actions--bottom">
+                <button class="button button--primary" type="submit">Buscar</button>
+                <button class="button button--secondary" type="button" id="clearFiltersButton">Limpar</button>
+              </div>
+            </div>
+          </form>
+
+          <section class="panel table-panel">
+            <div class="panel__header">
+              <div>
+                <h2>Hospedes cadastrados</h2>
+                <p><span id="guestCount">0</span> registro(s)</p>
+              </div>
+              <a class="button button--primary" href="/hospedes/add/">Novo hospede</a>
+            </div>
+
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Hospede</th>
+                    <th>CPF</th>
+                    <th>Telefone</th>
+                    <th>Cidade</th>
+                    <th class="cell-actions">Acoes</th>
+                  </tr>
+                </thead>
+                <tbody id="guestsTableBody">
+                  <tr>
+                    <td colspan="5" class="empty-state">Nenhum hospede carregado.</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <div class="pagination">
+              <button class="button button--secondary" type="button" id="previousPageButton">Anterior</button>
+              <span id="pageInfo">Página 1 de 1</span>
+              <button class="button button--secondary" type="button" id="nextPageButton">Próxima</button>
+            </div>
+          </section>
+        </section>
+      </section>
+    </main>
+
+    <script src="/config.js"></script>
+    <script src="/common.js"></script>
+    <script src="/listagem.js"></script>
+  </body>
+</html>
