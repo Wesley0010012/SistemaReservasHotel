@@ -20,22 +20,24 @@ export class TypeormCidadesDao implements CidadesDao {
     }
 
     public async findAllPaginated(): Promise<Cidade[]> {
-        const entities = await this.repository.find({
-            relations: {
-                estado: true,
-            },
-        });
+        const entities = await this.repository
+            .createQueryBuilder("cidade")
+            .leftJoinAndSelect("cidade.estado", "estado")
+            .where("cidade.active = :active", { active: true })
+            .andWhere("estado.active = :active", { active: true })
+            .getMany();
 
         return entities.map(TypeormCidadeMapper.toDomain);
     }
 
     public async findById(id: number): Promise<Cidade | null> {
-        const entity = await this.repository.findOne({
-            where: { id },
-            relations: {
-                estado: true,
-            },
-        });
+        const entity = await this.repository
+            .createQueryBuilder("cidade")
+            .leftJoinAndSelect("cidade.estado", "estado")
+            .where("cidade.id = :id", { id })
+            .andWhere("cidade.active = :active", { active: true })
+            .andWhere("estado.active = :active", { active: true })
+            .getOne();
 
         if (entity === null) {
             return null;
@@ -49,6 +51,8 @@ export class TypeormCidadesDao implements CidadesDao {
         const query = this.repository
             .createQueryBuilder("cidade")
             .leftJoinAndSelect("cidade.estado", "estado")
+            .where("cidade.active = :active", { active: true })
+            .andWhere("estado.active = :active", { active: true })
             .orderBy("cidade.id", pagination.ordenacao)
             .skip((pagination.paginaAtual - 1) * pagination.quantidade)
             .take(pagination.quantidade);
