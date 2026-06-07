@@ -1,0 +1,57 @@
+@startuml "Registrar resultado de pagamento - Fluxo de Sucesso"
+skinparam backgroundColor #FFFFFF
+skinparam shadowing false
+skinparam sequenceMessageAlign center
+skinparam responseMessageBelowArrow true
+skinparam ParticipantPadding 18
+skinparam BoxPadding 8
+skinparam defaultFontName Arial
+skinparam ArrowColor #1F2937
+skinparam LifeLineBorderColor #64748B
+skinparam LifeLineBackgroundColor #E2E8F0
+skinparam actor {
+  BackgroundColor #F8FAFC
+  BorderColor #111827
+}
+skinparam participant {
+  BackgroundColor #EFF6FF
+  BorderColor #2563EB
+}
+skinparam entity {
+  BackgroundColor #F0FDF4
+  BorderColor #16A34A
+}
+skinparam database {
+  BackgroundColor #FFF7ED
+  BorderColor #EA580C
+}
+title Registrar resultado de pagamento - Fluxo de Sucesso
+
+actor Usuario
+participant "Interface Web" as UI
+participant "PagamentosController" as Controller
+participant "PagamentosFacade" as Facade
+participant "DTO" as DTO
+participant "Strategy" as Strategy
+entity "Pagamento, Reserva" as Domain
+entity "TypeormPagamentoEntity" as PersistEntity
+database "TypeormPagamentosDao" as Dao
+
+Usuario -> UI: executa ação "Registrar resultado de pagamento"
+UI -> Controller: POST /pagamentos/{id}/resultado
+Controller -> Facade: processar solicitação
+Facade -> Strategy: estratégia do fluxo de pagamento
+Strategy -> Dao: carregar pagamento/reserva
+Dao -> PersistEntity: consultar entidade TypeORM
+PersistEntity --> Dao: dados encontrados
+Dao --> Strategy: entidades de domínio
+Strategy -> Domain: Pagamento.aprovar() ou Pagamento.negar()
+Domain -> Domain: validar valor, status e vínculo com reserva
+Strategy -> Dao: persistir operação quando aplicável
+Dao -> PersistEntity: mapear domínio para entidade TypeORM
+Facade -> Strategy: ENTITY_TO_DTO
+Strategy --> Facade: OutputDto / EntityPageDto
+Facade --> Controller: resposta de sucesso
+Controller --> UI: 200/201 OK
+UI --> Usuario: exibe resultado registrado
+@enduml

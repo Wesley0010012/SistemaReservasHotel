@@ -1,0 +1,54 @@
+@startuml "Consultar quartos - Fluxo de Sucesso"
+skinparam backgroundColor #FFFFFF
+skinparam shadowing false
+skinparam sequenceMessageAlign center
+skinparam responseMessageBelowArrow true
+skinparam ParticipantPadding 18
+skinparam BoxPadding 8
+skinparam defaultFontName Arial
+skinparam ArrowColor #1F2937
+skinparam LifeLineBorderColor #64748B
+skinparam LifeLineBackgroundColor #E2E8F0
+skinparam actor {
+  BackgroundColor #F8FAFC
+  BorderColor #111827
+}
+skinparam participant {
+  BackgroundColor #EFF6FF
+  BorderColor #2563EB
+}
+skinparam entity {
+  BackgroundColor #F0FDF4
+  BorderColor #16A34A
+}
+skinparam database {
+  BackgroundColor #FFF7ED
+  BorderColor #EA580C
+}
+title Consultar quartos - Fluxo de Sucesso
+
+actor Usuario
+participant "Interface Web" as UI
+participant "QuartosController" as Controller
+participant "QuartosFacade" as Facade
+participant "DTO" as DTO
+participant "Strategy" as Strategy
+entity "Quarto, TipoQuarto, StatusQuarto" as Domain
+entity "TypeormQuartoEntity" as PersistEntity
+database "TypeormQuartosDao" as Dao
+
+Usuario -> UI: informa filtros de consulta
+UI -> Controller: GET /quartos?filtros
+Controller -> Facade: findByParameters(searchParameters)
+Facade -> DTO: montar parâmetros de busca
+Facade -> Strategy: FIND_BY_PARAMETERS
+Strategy -> Dao: findByParameters(searchParameters)
+Dao -> PersistEntity: aplicar filtros e paginação
+PersistEntity --> Dao: lista de entidades
+Dao --> Strategy: EntityPage<Quarto>
+Facade -> Strategy: ENTITY_TO_DTO
+Strategy --> Facade: EntityPageDto
+Facade --> Controller: EntityPageDto
+Controller --> UI: 200 OK
+UI --> Usuario: exibe listagem filtrada
+@enduml

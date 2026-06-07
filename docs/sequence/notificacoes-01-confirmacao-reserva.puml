@@ -1,0 +1,59 @@
+@startuml "Enviar confirmação de reserva - Fluxo de Sucesso"
+skinparam backgroundColor #FFFFFF
+skinparam shadowing false
+skinparam sequenceMessageAlign center
+skinparam responseMessageBelowArrow true
+skinparam ParticipantPadding 18
+skinparam BoxPadding 8
+skinparam defaultFontName Arial
+skinparam ArrowColor #1F2937
+skinparam LifeLineBorderColor #64748B
+skinparam LifeLineBackgroundColor #E2E8F0
+skinparam actor {
+  BackgroundColor #F8FAFC
+  BorderColor #111827
+}
+skinparam participant {
+  BackgroundColor #EFF6FF
+  BorderColor #2563EB
+}
+skinparam entity {
+  BackgroundColor #F0FDF4
+  BorderColor #16A34A
+}
+skinparam database {
+  BackgroundColor #FFF7ED
+  BorderColor #EA580C
+}
+title Enviar confirmação de reserva - Fluxo de Sucesso
+
+actor Usuario
+participant "Interface Web" as UI
+participant "NotificacoesController" as Controller
+participant "NotificacoesFacade" as Facade
+participant "DTO" as DTO
+participant "Strategy" as Strategy
+entity "Notificacao, Reserva, Email" as Domain
+entity "TypeormNotificacaoEntity / TypeormReservaEntity" as PersistEntity
+database "TypeormNotificacoesDao / TypeormReservasDao" as Dao
+
+Usuario -> UI: agenda/envia notificação CONFIRMACAO_RESERVA
+UI -> Controller: POST /notificacoes
+Controller -> Facade: add(notificacaoInputDto)
+Facade -> Strategy: buscar reserva e montar notificação
+Strategy -> Dao: findById(reservaId)
+Dao -> PersistEntity: consultar reserva e hóspede
+PersistEntity --> Dao: dados da reserva
+Dao --> Strategy: Reserva de domínio
+Strategy -> Domain: Notificacao.montarConteudo() com dados da reserva
+Domain -> Domain: validar conteúdo mínimo
+Strategy -> Dao: add(Notificacao)
+Dao -> PersistEntity: mapear Notificacao para TypeORM
+Dao -> Dao: repository.save(entity)
+Facade -> Strategy: EnviarNotificacao
+Strategy -> Domain: marcarComoEnviada()
+Facade -> Strategy: ENTITY_TO_DTO
+Facade --> Controller: NotificacaoOutputDto
+Controller --> UI: 201 Created
+UI --> Usuario: exibe notificação enviada
+@enduml

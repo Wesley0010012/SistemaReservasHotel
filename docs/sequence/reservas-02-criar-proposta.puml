@@ -1,0 +1,58 @@
+@startuml "Criar reserva (proposta) - Fluxo de Sucesso"
+skinparam backgroundColor #FFFFFF
+skinparam shadowing false
+skinparam sequenceMessageAlign center
+skinparam responseMessageBelowArrow true
+skinparam ParticipantPadding 18
+skinparam BoxPadding 8
+skinparam defaultFontName Arial
+skinparam ArrowColor #1F2937
+skinparam LifeLineBorderColor #64748B
+skinparam LifeLineBackgroundColor #E2E8F0
+skinparam actor {
+  BackgroundColor #F8FAFC
+  BorderColor #111827
+}
+skinparam participant {
+  BackgroundColor #EFF6FF
+  BorderColor #2563EB
+}
+skinparam entity {
+  BackgroundColor #F0FDF4
+  BorderColor #16A34A
+}
+skinparam database {
+  BackgroundColor #FFF7ED
+  BorderColor #EA580C
+}
+title Criar reserva (proposta) - Fluxo de Sucesso
+
+actor Usuario
+participant "Interface Web" as UI
+participant "ReservasController" as Controller
+participant "ReservasFacade" as Facade
+participant "DTO" as DTO
+participant "Strategy" as Strategy
+entity "Reserva, Hospede, Quarto, Pagamento, Promocao, PoliticaCancelamento" as Domain
+entity "TypeormReservaEntity" as PersistEntity
+database "TypeormReservasDao" as Dao
+
+Usuario -> UI: executa ação "Criar reserva (proposta)"
+UI -> Controller: POST /reservas
+Controller -> Facade: processar solicitação
+Facade -> Strategy: ValidarPeriodoReserva / ValidarCapacidadeReserva / CalcularValorReserva
+Strategy -> Dao: buscar dados necessários
+Dao -> PersistEntity: consultar/aplicar filtros no banco
+PersistEntity --> Dao: dados persistidos
+Dao --> Strategy: entidades de domínio
+Strategy -> Domain: Reserva, Hospede, Quarto, Promocao, PoliticaCancelamento
+Domain -> Domain: validar regras de negócio do fluxo
+Strategy -> Dao: persistir resultado quando aplicável
+Dao -> PersistEntity: mapear domínio para persistência
+Dao --> Strategy: operação concluída
+Facade -> Strategy: ENTITY_TO_DTO
+Strategy --> Facade: OutputDto / EntityPageDto
+Facade --> Controller: resposta de sucesso
+Controller --> UI: 200/201 OK
+UI --> Usuario: exibe proposta criada
+@enduml

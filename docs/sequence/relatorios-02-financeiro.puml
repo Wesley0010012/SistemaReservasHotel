@@ -1,0 +1,57 @@
+@startuml "Relatório financeiro - Fluxo de Sucesso"
+skinparam backgroundColor #FFFFFF
+skinparam shadowing false
+skinparam sequenceMessageAlign center
+skinparam responseMessageBelowArrow true
+skinparam ParticipantPadding 18
+skinparam BoxPadding 8
+skinparam defaultFontName Arial
+skinparam ArrowColor #1F2937
+skinparam LifeLineBorderColor #64748B
+skinparam LifeLineBackgroundColor #E2E8F0
+skinparam actor {
+  BackgroundColor #F8FAFC
+  BorderColor #111827
+}
+skinparam participant {
+  BackgroundColor #EFF6FF
+  BorderColor #2563EB
+}
+skinparam entity {
+  BackgroundColor #F0FDF4
+  BorderColor #16A34A
+}
+skinparam database {
+  BackgroundColor #FFF7ED
+  BorderColor #EA580C
+}
+title Relatório financeiro - Fluxo de Sucesso
+
+actor Usuario
+participant "Interface Web" as UI
+participant "RelatoriosController" as Controller
+participant "RelatoriosFacade" as Facade
+participant "DTO" as DTO
+participant "Strategy" as Strategy
+entity "Relatorio, Reserva, Pagamento, Promocao, Quarto" as Domain
+entity "TypeormReservaEntity / TypeormPagamentoEntity" as PersistEntity
+database "ReservasDao / PagamentosDao" as Dao
+
+Usuario -> UI: informa período e tipo de relatório
+UI -> Controller: GET /relatorios?tipo&periodo
+Controller -> Facade: gerarRelatorio(parametros)
+Facade -> Strategy: ValidarPeriodoRelatorio
+Strategy -> Domain: Relatorio.validarPeriodo()
+Facade -> Strategy: BuscarDadosRelatorio
+Strategy -> Dao: consultar dados consolidados
+Dao -> PersistEntity: aplicar filtros de período/tipo
+PersistEntity --> Dao: dados de persistência
+Dao --> Strategy: entidades de domínio
+Strategy -> Domain: RelatorioFinanceiro.calcularReceita()
+Domain --> Strategy: resultado calculado
+Facade -> Strategy: ENTITY_TO_DTO
+Strategy --> Facade: RelatorioOutputDto
+Facade --> Controller: relatório gerado
+Controller --> UI: 200 OK
+UI --> Usuario: exibe relatório
+@enduml
