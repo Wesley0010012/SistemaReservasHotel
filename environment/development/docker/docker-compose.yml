@@ -1,0 +1,110 @@
+name: sistema-reserva-hotel-dev
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: sistema-reserva-hotel-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-reserva_hotel}
+      POSTGRES_USER: ${POSTGRES_USER:-reserva_hotel}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-reserva_hotel}
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - reserva_hotel_private
+
+  backend:
+    build:
+      context: ../../../impl
+      dockerfile: ../environment/development/docker/node.Dockerfile
+    container_name: sistema-reserva-hotel-backend
+    restart: unless-stopped
+    environment:
+      NODE_ENV: development
+      PORT: 3000
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_NAME: ${POSTGRES_DB:-reserva_hotel}
+      DB_USER: ${POSTGRES_USER:-reserva_hotel}
+      DB_PASSWORD: ${POSTGRES_PASSWORD:-reserva_hotel}
+      TYPEORM_SYNCHRONIZE: ${TYPEORM_SYNCHRONIZE:-true}
+    expose:
+      - "3000"
+    volumes:
+      - ../../../impl:/usr/src/app
+      - backend_node_modules:/usr/src/app/node_modules
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - reserva_hotel_private
+
+  nginx:
+    image: nginx:1.27-alpine
+    container_name: sistema-reserva-hotel-nginx
+    restart: unless-stopped
+    environment:
+      FRONTEND_API_BASE_URL: ${FRONTEND_API_BASE_URL:-http://localhost:8080}
+      FRONTEND_APP_BASE_URL: ${FRONTEND_APP_BASE_URL:-http://localhost:8080}
+      FRONTEND_MOCK_BASE_URL: ${FRONTEND_MOCK_BASE_URL:-http://localhost:8081}
+    ports:
+      - "${NGINX_PORT:-8080}:80"
+    volumes:
+      - ./nginx/default.conf.template:/etc/nginx/templates/default.conf.template:ro
+      - ../../../frontend:/usr/share/nginx/html:ro
+    depends_on:
+      - backend
+    networks:
+      - reserva_hotel_private
+
+  mock:
+    image: node:22-alpine
+    container_name: sistema-reserva-hotel-mock
+    restart: unless-stopped
+    working_dir: /usr/src/frontend
+    environment:
+      MOCK_HOST: 0.0.0.0
+      MOCK_PORT: 8081
+    command: ["node", "mock-server.js"]
+    ports:
+      - "${MOCK_PORT:-8081}:8081"
+    volumes:
+      - ../../../frontend:/usr/src/frontend:ro
+    networks:
+      - reserva_hotel_private
+
+  seed:
+    image: postgres:16-alpine
+    container_name: sistema-reserva-hotel-seed
+    profiles:
+      - seed
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-reserva_hotel}
+      POSTGRES_USER: ${POSTGRES_USER:-reserva_hotel}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-reserva_hotel}
+    volumes:
+      - ./seeds:/seeds:ro
+    command: ["/bin/sh", "/seeds/run-seeds.sh"]
+    depends_on:
+      postgres:
+        condition: service_healthy
+      backend:
+        condition: service_started
+    networks:
+      - reserva_hotel_private
+
+volumes:
+  postgres_data:
+  backend_node_modules:
+
+networks:
+  reserva_hotel_private:
+    driver: bridge

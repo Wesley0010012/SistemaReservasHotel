@@ -1,0 +1,76 @@
+upstream backend_node {
+    server backend:3000;
+}
+
+server {
+    listen 80 default_server;
+    server_name localhost _;
+
+    absolute_redirect off;
+    port_in_redirect on;
+    server_name_in_redirect off;
+    client_max_body_size 10m;
+
+    location = /config.js {
+        default_type application/javascript;
+        add_header Cache-Control "no-store";
+        return 200 "window.APP_CONFIG = { API_BASE_URL: \"${FRONTEND_API_BASE_URL}\", APP_BASE_URL: \"${FRONTEND_APP_BASE_URL}\", MOCK_BASE_URL: \"${FRONTEND_MOCK_BASE_URL}\" };\n";
+    }
+
+    location /api/ {
+        proxy_pass http://backend_node;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+
+    location /health {
+        return 200 "ok\n";
+        add_header Content-Type text/plain;
+    }
+
+    location = / {
+        return 302 /hospedes;
+    }
+
+    location = /hospedes {
+        root /usr/share/nginx/html;
+        try_files /hospedes/index.html =404;
+    }
+
+    location = /hospedes/ {
+        root /usr/share/nginx/html;
+        try_files /hospedes/index.html =404;
+    }
+
+    location = /hospedes/add {
+        root /usr/share/nginx/html;
+        try_files /hospedes/add/index.html =404;
+    }
+
+    location = /hospedes/add/ {
+        root /usr/share/nginx/html;
+        try_files /hospedes/add/index.html =404;
+    }
+
+    location ~ ^/hospedes/update/[0-9]+$ {
+        root /usr/share/nginx/html;
+        try_files /hospedes/update/index.html =404;
+    }
+
+    location ~ ^/hospedes/update/[0-9]+/$ {
+        root /usr/share/nginx/html;
+        try_files /hospedes/update/index.html =404;
+    }
+
+    location ~ ^/(quartos|promocoes|politicas-cancelamento|reservas|pagamentos|notificacoes|relatorios)(/(add|update/[0-9]+))?/?$ {
+        return 302 ${FRONTEND_MOCK_BASE_URL}$request_uri;
+    }
+
+    location / {
+        root /usr/share/nginx/html;
+        try_files $uri $uri/ /index.html;
+    }
+}
